@@ -1,0 +1,5 @@
+1. Persistance: Product shoul be kept in database (postgresql)
+2. Use sqlalchemy.
+
+https://www.google.com/amp/s/scotch.io/tutorials/build-a-crud-web-app-with-python-and-flask-part-one/amp
+https://linuxize.com/post/how-to-install-postgresql-on-ubuntu-18-04/
