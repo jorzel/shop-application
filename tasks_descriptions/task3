@@ -1,0 +1,4 @@
+1. Add app/requirements.txt file to keep package dependencies
+2. Move all app.route endpoints to app/views.py file
+3. Use factory pattern to instantiate flask application: http://flask.pocoo.org/docs/1.0/patterns/appfactories/
+app.route replaced by blueprint shop.route
