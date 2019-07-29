@@ -9,4 +9,5 @@ class Product(db.Model):
     price = db.Column(db.Float())
 
     def __repr__(self):
-        return f'Product<id {self.id}><name {self.name}>'
+
+        return f'{self.name} {self.price} {self.id}'

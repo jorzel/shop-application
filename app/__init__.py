@@ -1,54 +1,20 @@
-import os
-
-from flask import Flask, render_template, request, url_for, redirect
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
-app = Flask(__name__)
-app.config.from_object(os.environ['APP_SETTINGS'])
-
-db = SQLAlchemy(app)
-
-from .models import Product
-# db.create_all()
-# db.drop_all()
-@app.route('/')
-def home():
-    return render_template("home.html")
+from .config import app_config
+db = SQLAlchemy()
 
 
-@app.route('/products')
-def products():
-    return render_template("products.html")
+def create_app(config_shop):
 
-@app.route('/remove')
-def remove():
-    return render_template("delete.html")
+    app = Flask(__name__, instance_relative_config=True)
+    app.config.from_object(app_config)
+    app.config.from_pyfile('config.py')
 
+    db.init_app(app)
 
-@app.route('/add', methods=['POST'])
-def add():
-    product_name = request.form['product']
-    product = Product(name=product_name)
-    db.session.add(product)
-    db.session.commit()
-    return redirect(url_for('products'))
+    from app import models
 
-
-@app.route('/delete', methods=['POST'])
-def delete():
-    products_list = db.session.query(Product).all()
-    product_name = request.form['product']
-    product = Product(name=product_name)
-    if product == products_list:
-        db.session.delete(product)
-        db.session.commit()
-    else:
-        print('Brak produktu')
-        print(products_list)
-        print(product)
-    return redirect(url_for('remove'))
-
-@app.route('/shop', methods=['GET'])
-def shop():
-    products_list = db.session.query(Product).all()
-    return render_template("shop.html", products_list=products_list)
+    from .shop import views
+    app.register_blueprint(views.shop)
+    return app
