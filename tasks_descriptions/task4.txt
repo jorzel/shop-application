@@ -1,0 +1,3 @@
+1. Add init_db.py file that drop all exisiting tables, and create all tables after that.
+2. Add new model User with username and password attributes. For migration do not user create_all, but flask-migarate: https://blog.miguelgrinberg.com/post/flask-migrate-alembic-database-migration-wrapper-for-flask
+3. Add /login and /logout endpoints which allows authentication functionality. Use flask-login: https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-v-user-logins. Add simple /checkout endpoint which is accessible only for logged users (login_required)
