@@ -1,0 +1,42 @@
+{% extends "body.html" %}
+{% block title %}Registration{% endblock%}
+{% block h1 %}Registration{% endblock%}
+{% block page %}
+
+<body id="register">
+    <form action="" method="post">
+         {{ form.hidden_tag() }}
+        <p>
+            {{form.first_name.label}}<br>
+            {{form.first_name(size=32) }}<br>
+        </p>
+        <p>
+            {{form.last_name.label}}<br>
+            {{form.last_name(size=32) }}<br>
+        </p>
+        <p>
+            {{form.email.label}}<br>
+            {{form.email(size=32) }}<br>
+            {% for error in form.email.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{form.username.label}}<br>
+            {{form.username(size=32) }}<br>
+            {% for error in form.username.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{form.password.label}}<br>
+            {{form.password (size=32) }}<br>
+            {% for error in form.password.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+</body>
+
+{% endblock %}
