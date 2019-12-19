@@ -1,0 +1,27 @@
+{% extends "body.html" %}
+{% block title %}{{ profile }}{% endblock%}
+{% block h1 %}Welcome <i>{{ profile }}</i>{% endblock%}
+{% block page %}
+ <body id="profile">
+    <ul>
+        <li>Username: <b>{{ profile }}</b> </li>
+        <li>First name: <b>{{ profile.first_name }}</b> </li>
+        <li>Last name: <b>{{ profile.last_name }}</b> </li>
+        <li>Email: <b>{{ profile.email }}</b> </li>
+        <br>
+    </ul>
+    <a href="{{ url_for('shop.change_password')}}" id="changepass">Change password</a>
+    <br><br><p><b>Your posts:</b></p>
+    <form  class="post-form" method = "POST" action="{{ url_for('shop.remove_post')}}">
+        {% for post in posts %}
+        <div class="posts">
+            <p><b>{{post.title}}</b><input type="checkbox" name="remove_post" value={{post.id}}></p>
+            <p>{{post.post}}</p>
+            <p>{{post.user}}</p>
+        </div>
+        {% endfor %}
+        <br>
+        <button  type="submit">Remove post</button>
+    </form>
+ </body>
+{% endblock %}

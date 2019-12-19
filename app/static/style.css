@@ -1,18 +1,30 @@
-body { margin-top: 1px; background-color: #FFE;  font: 1em arial,sans-serif; }
-h1 { margin: 0.1em 2em 0.1em 1em;; font-size: 20px }
+body { margin-top: 0px; background-color: #FFE;  font: 1em arial,sans-serif; }
+h1 { margin: 0em 1em 0.1em 1em;; font-size: 18px }
 h2 { margin-left: 20px; font-size: 20px }
 p { margin-left: 10px; margin-right: 20px;, font: 1em arial,sans-serif; }
 
 /* Table */
-th { border: 3px solid #333; }
-td { border: 2px solid #333; }
+
 #table p {
-color: black;
 margin-top: 5px; margin-bottom: 5px; margin-left: 10px; margin-right: 10px;
 text-align: center;
 }
-#table th {
-background-color: silver;
+
+.table_title th {
+border-style: groove;
+border-radius: 10px;
+border-width: 2px;
+border-color: #B4C1EA;
+background-color: #F3F2F5;
+}
+
+.table_col {
+border-style: groove;
+border-radius: 10px;
+border-width: 1px;
+border-color: #B4C1EA;
+background-color: #F3FDF5;
+line-height: 1.5;
 }
 
 /* Menu bars */
@@ -48,28 +60,29 @@ padding-top: 0.1em;
 padding-bottom: 4em;
 }
 body#home a#home,
-body#products a#products,
 body#shop_list a#shop_list,
-body#remove a#remove,
 body#logout a#logout,
 body#login a#login,
-body#users a#users
-
+body#users a#users,
+body#profile a#profile,
+body#cart a#cart
 {
 	color: #FFFFFF;
 	background: #87CEEB;
 }
 /* Page */
 #page {
-width: 80%; margin: 2em 2em 2em 2em; }
+width: 80%; margin: 0.5em 2em 2em 0em; }
 
 
 /* Buttons */
 button {
   background-color: silver;
   color: black;
-  padding: 10px 30px;
+  padding: 8px 25px;
   font: 1em arial, sans-serif;
+  margin-top: 8px
+
 }
 button#add:hover {
 color: green;
@@ -81,6 +94,16 @@ color: red;
 background: #DCDCDC;
 border: 1px solid red;
 }
+button#select:hover {
+color: #3171DA;
+background: #DCDCDC;
+border: 1px solid #3171DA;
+}
+
+
+label {
+color: #696969;
+}
 
 /* Input bars */
 input {
@@ -88,8 +111,11 @@ color: black;
 background: #F0F0F0;
   padding: 3px 0px;
 }
-label {
-color: #696969;
+
+input#quantity {
+color: #000000;
+width: 30px;
+background: #FFFFFF;
 }
 
 /* Flash message */
@@ -109,3 +135,63 @@ color: Green;
 margin-top: 0.1em;
 font-weight: bold;
 }
+
+/*Div*/
+.loginDiv {
+background-color:#F5F5F5;
+margin-top: 1em; margin-bottom: 5px; margin-left: 6em; margin-right: 40em;
+border-style: groove;
+border-radius: 15px;
+border-width: 4px;
+border-color:  #33C4FF;
+font-size: 16px;
+font-family: Avantgarde,  sans-serif;
+}
+
+.loginDiv h1 {
+font-size: 20px;
+color: gray;
+}
+
+.loginDiv input {
+border-radius: 5px;
+
+}
+
+input#description {
+border-radius: 5px;
+width: 300px
+}
+
+/*Post*/
+
+.main_post {
+border-style: groove;
+border-radius: 10px;
+border-width: 2px;
+border-color: #B4C1EA;
+background-color: #F3F2F5;
+width: 500px;
+}
+
+.posts {
+border-style: groove;
+border-radius: 10px;
+border-width: 1px;
+border-color: #B4C1EA;
+background-color: #F3FDF5;
+width: 450px
+}
+
+.author {
+color: #4E4E4B;
+font-size: 15px;
+text-align: right;
+}
+.post_date {
+color: grey;
+font-size: 12px;
+text-align: right;
+line-height: 0.3;
+}
+

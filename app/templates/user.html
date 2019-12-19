@@ -1,9 +1,25 @@
 {% extends "body.html" %}
-{% block title %}USER{% endblock%}
-{% block h1 %}USER{% endblock%}
+{% block title %}{{ username }}{% endblock%}
+{% block h1 %}User: <i>{{username}}</i>{% endblock%}
 {% block page %}
- <body id="USER">
-       USER<br>PROFILE TEST
+ <body id="user">
+    <ul>
+        <li>Username: <b>{{ user }}</b> </li>
+        <li>ID: <b>{{ user.id }}</b> </li>
+        <li>First name: <b>{{ user.first_name }}</b> </li>
+        <li>Last name: <b>{{ user.last_name }}</b> </li>
+        <li>Email: <b>{{ user.email }}</b> </li>
+        <li>Role: <b>{{ role }}</b> </li>
+    </ul>
+            <form class="add-form" method="POST" action="{{ url_for('shop.role', username=user)}}">
+            <select class="form-control" name="role" id="role">
+                <option value='guest'>guest </option>
+                <option value='admin'>admin </option>
+            </select>
+                <button id='select' type="submit">Save</button>
+            </form>
+            <form class="rem-form" method = "POST" action="{{ url_for('shop.remove_user')}}">
+                <br><br><button name=user value={{username}} id='rem' type="submit" >Remove user</button>
+            </form>
  </body>
-
 {% endblock %}

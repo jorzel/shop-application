@@ -8,8 +8,10 @@ class Product(db.Model):
     __tablename__ = 'product'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String())
-    price = db.Column(db.Float())
+    name = db.Column(db.String(), nullable=False)
+    price = db.Column(db.Float(), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    description = db.Column(db.String())
 
     def __repr__(self):
 
@@ -25,10 +27,11 @@ class User(UserMixin, db.Model):
     first_name = db.Column(db.String(128), unique=False, nullable=False)
     last_name = db.Column(db.String(128), unique=False, nullable=False)
     email = db.Column(db.String(128), unique=True, nullable=False)
+    role = db.relationship('Role', secondary='user_roles', backref=db.backref('user', lazy='dynamic'))
 
     @property
     def password(self):
-        raise AttributeError("Attribute Error no.1")
+        raise AttributeError("Attribute password error")
 
     @password.setter
     def password(self, password):
@@ -39,6 +42,40 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f'{self.username}'
+
+
+class Role(db.Model):
+    __tabelename__ = 'role'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+
+
+class UserRoles(db.Model):
+    __tablename__ = 'user_roles'
+    id = db.Column(db.Integer(), primary_key=True)
+    user_id = db.Column(db.Integer(), db.ForeignKey('user.id', ondelete='CASCADE'))
+    role_id = db.Column(db.Integer(), db.ForeignKey('role.id', ondelete='CASCADE'))
+
+
+class Posts(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer(), primary_key=True)
+    title = db.Column(db.String(100), unique=True, nullable=False)
+    post = db.Column(db.String(), nullable=False)
+    user = db.Column(db.String(), nullable=False)
+    time = db.Column(db.Float())
+    time_date = db.Column(db.String())
+
+    def __repr__(self):
+        return f'{self.title} {self.post}'
+
+
+class Cart(db.Model):
+    __tablename__ = 'cart'
+    id = db.Column(db.Integer(), primary_key=True)
+    user_id = db.Column(db.Integer(), db.ForeignKey('user.id', ondelete='CASCADE'))
+    product_id = db.Column(db.Integer(), db.ForeignKey('product.id', ondelete='CASCADE'))
 
 
 @login.user_loader
