@@ -3,12 +3,13 @@ from flask import render_template, request, url_for, redirect, flash, Blueprint
 from flask_login import login_user, logout_user, login_required, current_user
 from app.forms import LoginForm, RegisterForm, ChangePasswordForm
 from ..models import Product, User, Role, UserRoles, Posts, Cart
+import sqlalchemy.exc
 import time
-from colorama import Fore, Style
 import logging
-import pandas as pd
 import io
 import csv
+import json
+import random
 
 shop = Blueprint('shop', __name__, template_folder='templates')
 
@@ -27,13 +28,46 @@ def current_role():
 
 @shop.route('/', methods=['GET'])
 def home():
-    title = db.session.query(Posts.title).all()
-    title = ([x[0] for x in title])
+    products = db.session.query(Product.id).all()
+    products = ([n[0] for n in products])
+    products_list = []
+    for product in products:
+        product = Product.query.filter_by(id=product).first()
+        products_list.append(product)
+    random_numbers = random.sample([i for i in range(len(products_list))], k=len(products_list))
+    list_with_rnd_numbers = []
+    for x, y in zip(random_numbers, products_list):
+        result = (x, y)
+        list_with_rnd_numbers.append(result)
+    sorted_list = sorted(list_with_rnd_numbers)
+    rnd_products_list = []
+    for x, y in sorted_list:
+        rnd_products_list.append(y)
+    try:
+        first_product = rnd_products_list[0]
+        products_list_1 = rnd_products_list[1:4]
+        products_list_2 = rnd_products_list[5:8]
+        products_list_3 = rnd_products_list[9:12]
+    except IndexError:
+        flash('There is no product there', 'success')
+        first_product = []
+        products_list_1 = []
+        products_list_2 = []
+        products_list_3 = []
+
+    return render_template("home.html", products_list_1=products_list_1, products_list_2=products_list_2,
+                           products_list_3=products_list_3, first_product=first_product)
+
+
+@shop.route('/posts', methods=["GET"])
+def posts():
+    get_posts = db.session.query(Posts.title).all()
+    get_posts = ([n[0] for n in get_posts])
     posts_list = []
-    for item in title:
-        posts_list.append(item)
+    for post in get_posts:
+        posts_list.append(post)
     if not posts_list:
-        return render_template("home.html")
+        return render_template("posts.html")
     elif len(posts_list) == 1:
         page_post = posts_list[0]
     else:
@@ -45,20 +79,21 @@ def home():
     time_date = Posts.query.filter_by(id=post_db.id).first().time_date
     post_id = Posts.query.filter_by(id=post_db.id).first().id
     posts_list2 = []
+    number_of_visible_posts = 4
     i = 0
     if len(posts_list) == 0 or len(posts_list) == 1:
-        return render_template("home.html", title=title, post=post, user=user, post_id=post_id, time=time_date)
+        return render_template("posts.html", title=title, post=post, user=user, post_id=post_id, time=time_date)
     elif len(posts_list) == 2:
         page_post2 = posts_list[0]
         post2 = Posts.query.filter_by(title=page_post2).first()
         posts_list2.append(post2)
     else:
-        while i != len(posts_list) - 1:
+        while i != number_of_visible_posts:
             i += 1
             page_post2 = posts_list[len(posts_list) - (i+1)]
             post2 = Posts.query.filter_by(title=page_post2).first()
             posts_list2.append(post2)
-    return render_template("home.html", title=title, post=post, user=user, time=time_date,
+    return render_template("posts.html", title=title, post=post, user=user, time=time_date,
                            post_id=post_id, posts_list2=posts_list2)
 
 
@@ -147,8 +182,8 @@ def profile(username):
     check_user = db.session.query(Posts.user).all()
     check_user = ([x[0] for x in check_user])
     if current_user.username in check_user:
-        posts = Posts.query.filter_by(user=current_user.username).all()
-        return render_template('profile.html', profile=user, posts=posts)
+        user_posts = Posts.query.filter_by(user=current_user.username).all()
+        return render_template('profile.html', profile=user, posts=user_posts)
     else:
         return render_template('profile.html', profile=user)
 
@@ -213,37 +248,32 @@ def add():
     return redirect(url_for('shop.shop_list'))
 
 
-@shop.route('/add_csv', methods=['GET', 'POST'])
-def add_csv():
-    if request.method == "POST":
-        updated_file = request.files['csv_file']
-        stream = io.StringIO(updated_file.stream.read().decode("UTF8"), newline=None)
-        data_file = list(csv.reader(stream, delimiter=','))
-        for row in data_file[1:]:
-            new_product = Product(name=row[0], price=row[1], quantity=int(row[2]), description=row[3])
-            db.session.add(new_product)
-            db.session.commit()
-        return redirect(url_for('shop.shop_list'))
-    return redirect(url_for('shop.shop_list'))
-
-
 @shop.route('/delete', methods=['POST'])
 def delete():
     product_remove = request.form['product']
-    if product_remove == "del_all_prod":
-        Product.query.filter().delete()
+    products_list = db.session.query(Product.name).all()
+    products_list = ([x[0] for x in products_list])
+    if product_remove in products_list:
+        Product.query.filter_by(name=product_remove).delete()
+        flash('Product %s has been removed' % product_remove, 'success')
         db.session.commit()
-        flash('All products has been removed from list', 'error')
     else:
-        products_list = db.session.query(Product.name).all()
-        products_list = ([x[0] for x in products_list])
-        if product_remove in products_list:
-            Product.query.filter_by(name=product_remove).delete()
-            flash('Product %s has been removed' % product_remove, 'success')
-            db.session.commit()
-        else:
-            flash('Product %s is not on list' % product_remove, 'error')
+        flash('Product %s is not on list' % product_remove, 'error')
     return redirect(url_for('shop.shop_list'))
+
+
+@shop.route('/add_product_img', methods=['POST'])
+def add_product_img():
+    new_image = request.form['product_image_link']
+    product = request.form['product']
+    product = Product.query.filter_by(name=product).first()
+    product.image = new_image
+    db.session.add(product)
+    db.session.commit()
+    if current_user.is_authenticated:
+        return render_template('product.html', product=product, current_role=current_role(), role_req=role_req('admin'))
+    else:
+        return render_template('product.html', product=product)
 
 
 @shop.route('/delete_selected', methods=['POST'])
@@ -253,6 +283,96 @@ def delete_selected():
         Product.query.filter_by(id=product_id).delete()
         db.session.commit()
     return redirect(url_for('shop.shop_list'))
+
+
+@shop.route('/import_csv', methods=['GET', 'POST'])
+def import_csv():
+    if request.method == "POST":
+        updated_file = request.files['csv_file']
+        if not updated_file:
+            flash("You don't chose CSV file or file is empty", 'info')
+        else:
+            stream = io.StringIO(updated_file.stream.read().decode("utf-8"), newline=None)
+            data_file = list(csv.reader(stream, delimiter=','))
+            for row in data_file[1:]:
+                if row[0] == "" or row[1] == "" or row[2] == "":
+                    flash('Some cells in file are empty, please check fill of columns and rows'
+                          '(product name, price and quantity)', 'error')
+                else:
+                    try:
+                        new_product = Product(name=row[0], price=row[1], quantity=row[2], description=row[3],
+                                              image=row[4])
+                        db.session.add(new_product)
+                        flash('Added product: %s' % new_product.name, 'success')
+                        db.session.commit()
+                    except sqlalchemy.exc.DataError:
+                        flash("Data problem, products have not benn added - check column fill correctness", 'error')
+            return redirect(url_for('shop.shop_list'))
+        return redirect(url_for('shop.shop_list'))
+
+
+@shop.route('/import_json', methods=['POST'])
+def import_json():
+    updated_file = request.files['json_file']
+    stream = json.load(updated_file)
+    return redirect(url_for('shop.shop_list'))
+
+
+@shop.route('/export_products', methods=['POST'])
+def export_products():
+    products_id = db.session.query(Product.id).all()
+    time_data = time.strftime("%Y%m%d-%H%M%S")
+    export_format = request.form['format']
+    if export_format == 'csv':
+        products_to_csv = []
+        with open('output/product_list_%s.csv' % time_data, mode='w') as csv_file:
+            new_row = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            first_row = [
+                "ID",
+                "Name",
+                "Price",
+                "Quantity",
+                "Description",
+                "Image link",
+                ]
+            new_row.writerow(first_row)
+            for product_id in products_id:
+                product = Product.query.filter_by(id=product_id).first()
+                prod_id = product.id
+                prod_name = product.name
+                prod_price = product.price
+                prod_quantity = product.quantity
+                prod_description = product.description
+                prod_image_link = product.image
+                product_to_csv = [
+                    prod_id,
+                    prod_name,
+                    prod_price,
+                    prod_quantity,
+                    prod_description,
+                    prod_image_link,
+                ]
+                new_row.writerow(product_to_csv)
+                products_to_csv.append(product_to_csv)
+            flash('You exported products list to CSV file "product_list_%s.csv"' % time_data, 'success')
+            return redirect(url_for('shop.shop_list'))
+    elif export_format == 'json':
+        with open('output/product_list_%s.json' % time_data, mode='w') as json_file:
+            for product_id in products_id:
+                product = Product.query.filter_by(id=product_id).first()
+                new_json_product = {
+                    'id': product.id,
+                    'name': product.name,
+                    'price': product.price,
+                    'quantity': product.quantity,
+                    'description': product.description,
+                    'image link': product.image,
+                }
+                json.dump(new_json_product, json_file)
+        flash('You exported products list to JSON file "product_list_%s.json"' % time_data, 'success')
+        return redirect(url_for('shop.shop_list'))
+    else:
+        return redirect(url_for('shop.shop_list'))
 
 
 @shop.route('/list', methods=['GET', 'POST'])
@@ -323,14 +443,14 @@ def add_post():
     title = request.form['title']
     if not title:
         flash("You have to add title", 'error')
-        return redirect(url_for('shop.home'))
+        return redirect(url_for('shop.posts'))
     elif title in title_list:
         flash("Post with the same title does exist", 'error')
-        return redirect(url_for('shop.home'))
+        return redirect(url_for('shop.posts'))
     post = request.form['post']
     if not post:
         flash("You have to add some text", 'error')
-        return redirect(url_for('shop.home'))
+        return redirect(url_for('shop.posts'))
     if current_user.is_anonymous:
         user = "Guest"
     else:
@@ -340,7 +460,7 @@ def add_post():
     new_post = Posts(title=title, post=post, user=user, time=seconds, time_date=time_date)
     db.session.add(new_post)
     db.session.commit()
-    return redirect(url_for('shop.home'))
+    return redirect(url_for('shop.posts'))
 
 
 @shop.route('/remove_post', methods=['GET', 'POST'])
@@ -355,7 +475,7 @@ def remove_post():
     else:
         for item in rem_post:
             post_user = Posts.query.filter_by(id=item).first().user
-            post_user_list.append(post_user)  # post.user
+            post_user_list.append(post_user)
     if current_role() == role_req('admin'):
         if request.method == "POST":
             if 'all_posts_remove' in rem_post:
@@ -367,7 +487,7 @@ def remove_post():
                     Posts.query.filter_by(id=item).delete()
                     db.session.commit()
                 flash(f'Post: {rem_post} has been removed', 'success')
-            return redirect(url_for('shop.home'))
+            return redirect(url_for('shop.posts'))
     elif user in post_user_list:
         for item in rem_post:
             post_user = Posts.query.filter_by(id=item).first().user
@@ -379,10 +499,10 @@ def remove_post():
             Posts.query.filter_by(id=item).delete()
             db.session.commit()
         flash(f'Post: {post_user_filtered_list} has been removed', 'success')
-        return redirect(url_for("shop.home"))
+        return redirect(url_for("shop.posts"))
     else:
         flash("You do not have access to remove this post", 'error')
-        return redirect(url_for("shop.home"))
+        return redirect(url_for("shop.posts"))
 
 
 @shop.route('/cart', methods=["POST", "GET"])
@@ -426,7 +546,6 @@ def clear_cart():
 
 @shop.route('/buy', methods=["POST"])
 def buy():
-    # buying_quantity = request.form['buy']
     buying_quantity = 1
     cart_products = Cart.query.filter_by(user_id=current_user.id)
     flash('Products:\n', 'success')
