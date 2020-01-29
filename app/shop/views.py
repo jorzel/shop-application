@@ -45,14 +45,20 @@ def home():
         rnd_products_list.append(y)
     try:
         first_product = rnd_products_list[0]
-        products_list_1 = rnd_products_list[1:4]
-        products_list_2 = rnd_products_list[5:8]
-        products_list_3 = rnd_products_list[9:12]
     except IndexError:
         flash('There is no product there', 'success')
         first_product = []
+    try:
+        products_list_1 = rnd_products_list[1:4]
+    except IndexError:
         products_list_1 = []
+    try:
+        products_list_2 = rnd_products_list[4:7]
+    except IndexError:
         products_list_2 = []
+    try:
+        products_list_3 = rnd_products_list[7:10]
+    except IndexError:
         products_list_3 = []
 
     return render_template("home.html", products_list_1=products_list_1, products_list_2=products_list_2,
@@ -148,7 +154,7 @@ def logout():
 def users(username=None):
     if current_role() == role_req('guest') or role_req('admin'):
         users_list = db.session.query(User).all()
-        if username is not None:
+        if username:
             user = User.query.filter_by(username=username).first_or_404()
             role_temp_id = UserRoles.query.filter_by(user_id=user.id).first().role_id
             role_name = Role.query.filter_by(id=role_temp_id).first().name
@@ -250,23 +256,23 @@ def add():
 
 @shop.route('/delete', methods=['POST'])
 def delete():
-    product_remove = request.form['product']
-    products_list = db.session.query(Product.name).all()
+    product_id = int(request.form['product_id'])
+    products_list = db.session.query(Product.id).all()
     products_list = ([x[0] for x in products_list])
-    if product_remove in products_list:
-        Product.query.filter_by(name=product_remove).delete()
-        flash('Product %s has been removed' % product_remove, 'success')
+    if product_id in products_list:
+        Product.query.filter_by(id=product_id).delete()
+        flash('Product %s has been removed' % product_id, 'success')
         db.session.commit()
     else:
-        flash('Product %s is not on list' % product_remove, 'error')
+        flash('Product %s is not on list' % product_id, 'error')
     return redirect(url_for('shop.shop_list'))
 
 
 @shop.route('/add_product_img', methods=['POST'])
 def add_product_img():
     new_image = request.form['product_image_link']
-    product = request.form['product']
-    product = Product.query.filter_by(name=product).first()
+    product_id = request.form['product_id']
+    product = Product.query.filter_by(id=product_id).first()
     product.image = new_image
     db.session.add(product)
     db.session.commit()
@@ -285,36 +291,42 @@ def delete_selected():
     return redirect(url_for('shop.shop_list'))
 
 
-@shop.route('/import_csv', methods=['GET', 'POST'])
-def import_csv():
+@shop.route('/import_products', methods=['GET', 'POST'])
+def import_products():
     if request.method == "POST":
-        updated_file = request.files['csv_file']
+        updated_file = request.files['file']
         if not updated_file:
-            flash("You don't chose CSV file or file is empty", 'info')
-        else:
-            stream = io.StringIO(updated_file.stream.read().decode("utf-8"), newline=None)
-            data_file = list(csv.reader(stream, delimiter=','))
-            for row in data_file[1:]:
-                if row[0] == "" or row[1] == "" or row[2] == "":
-                    flash('Some cells in file are empty, please check fill of columns and rows'
-                          '(product name, price and quantity)', 'error')
-                else:
-                    try:
-                        new_product = Product(name=row[0], price=row[1], quantity=row[2], description=row[3],
-                                              image=row[4])
-                        db.session.add(new_product)
-                        flash('Added product: %s' % new_product.name, 'success')
-                        db.session.commit()
-                    except sqlalchemy.exc.DataError:
-                        flash("Data problem, products have not benn added - check column fill correctness", 'error')
+            flash("You didn't choose CSV/JSON file or file is empty", 'info')
             return redirect(url_for('shop.shop_list'))
-        return redirect(url_for('shop.shop_list'))
-
-
-@shop.route('/import_json', methods=['POST'])
-def import_json():
-    updated_file = request.files['json_file']
-    stream = json.load(updated_file)
+        else:
+            file_name = updated_file.filename
+            extension = file_name.split('.')[-1]
+            print("TEST0", updated_file)
+            if extension == "csv":
+                stream = io.StringIO(updated_file.stream.read().decode("utf-8"), newline=None)
+                data_file = list(csv.reader(stream, delimiter=','))
+                for row in data_file[1:]:
+                    if row[0] == "" or row[1] == "" or row[2] == "":
+                        flash('Some cells in file are empty, please check fill of columns and rows'
+                              '(product name, price and quantity)', 'error')
+                    else:
+                        try:
+                            new_product = Product(name=row[0], price=row[1], quantity=row[2], description=row[3],
+                                                  image=row[4])
+                            db.session.add(new_product)
+                            db.session.commit()
+                        except sqlalchemy.exc.DataError:
+                            flash("Data problem, products have not been added - check column fill correctness", 'error')
+                        except IndexError:
+                            flash("Data problem, some column is empty", 'error')
+                flash('Added {} product/s' .format(len(data_file[1:])), 'success')
+                return redirect(url_for('shop.shop_list'))
+            elif extension == "json":
+                stream = json.load(updated_file)
+                print(stream)
+                return redirect(url_for('shop.shop_list'))
+            else:
+                return redirect(url_for('shop.shop_list'))
     return redirect(url_for('shop.shop_list'))
 
 
@@ -358,6 +370,7 @@ def export_products():
             return redirect(url_for('shop.shop_list'))
     elif export_format == 'json':
         with open('output/product_list_%s.json' % time_data, mode='w') as json_file:
+            output = []
             for product_id in products_id:
                 product = Product.query.filter_by(id=product_id).first()
                 new_json_product = {
@@ -368,7 +381,8 @@ def export_products():
                     'description': product.description,
                     'image link': product.image,
                 }
-                json.dump(new_json_product, json_file)
+                output.append(new_json_product)
+            json.dump(output, json_file)
         flash('You exported products list to JSON file "product_list_%s.json"' % time_data, 'success')
         return redirect(url_for('shop.shop_list'))
     else:
@@ -379,26 +393,36 @@ def export_products():
 @shop.route('/list/<product>')
 def shop_list(product=None):
     if product is None:
-        products_list = db.session.query(Product).all()
-        products_name = db.session.query(Product.name).all()
-        products_name = ([x[0] for x in products_name])
-        products_price = db.session.query(Product.price).all()
-        products_price = ([x[0] for x in products_price])
         products_id = db.session.query(Product.id).all()
         products_id = ([x[0] for x in products_id])
-        products_quantity = db.session.query(Product.quantity).all()
-        products_quantity = ([x[0] for x in products_quantity])
-        logging.info("Products list %s", products_name)
-        if not products_name:
+        if request.method == "POST":
+            sort = request.form['sort']
+            if sort == "sort_name":
+                products_name = []
+                for id_ in products_id:
+                    product_name = Product.query.filter_by(id=id_).first().name
+                    products_name.append(product_name)
+                products_name = sorted(products_name)
+                products_id = []
+                for name in products_name:
+                    product_id = Product.query.filter_by(name=name).first().id
+                    products_id.append(product_id)
+            elif sort == "sort_id":
+                products_id = sorted(products_id)
+            else:
+                pass
+        products_list = []
+        for i in products_id:
+            product = Product.query.filter_by(id=i).first()
+            products_list.append(product)
+        logging.info("Products list %s", products_list)
+        if not products_list:
             flash('Product list is empty', 'info')
         if current_user.is_authenticated:
-            return render_template("shop_list.html", products_list=products_list,
-                                   products_name=products_name, products_price=products_price, products_id=products_id,
-                                   products_quantity=products_quantity, current_role=current_role(),
-                                   role_req=role_req('admin'))
+            return render_template("shop_list.html", current_role=current_role(),
+                                   role_req=role_req('admin'), products_list=products_list)
         else:
-            return render_template("shop_list.html", products_list=products_list, products_quantity=products_quantity,
-                                   products_name=products_name, products_price=products_price, products_id=products_id)
+            return render_template("shop_list.html", products_list=products_list)
     else:
         product = Product.query.filter_by(name=product).first()
         if current_user.is_authenticated:
@@ -410,9 +434,9 @@ def shop_list(product=None):
 
 @shop.route('/product_quantity', methods=['GET', 'POST'])
 def product_quantity():
-    product = request.form['product_name']
+    product_id = request.form['product_id']
     new_quantity = request.form['new_quantity']
-    product = Product.query.filter_by(name=product).first()
+    product = Product.query.filter_by(id=product_id).first()
     product.quantity = new_quantity
     db.session.add(product)
     db.session.commit()
@@ -425,8 +449,8 @@ def product_quantity():
 @shop.route('/add_description/', methods=['GET', 'POST'])
 def add_description():
     new_description = request.form['description']
-    product = request.form['product']
-    product = Product.query.filter_by(name=product).first()
+    product_id = request.form['product_id']
+    product = Product.query.filter_by(id=product_id).first()
     product.description = new_description
     db.session.add(product)
     db.session.commit()
@@ -508,23 +532,20 @@ def remove_post():
 @shop.route('/cart', methods=["POST", "GET"])
 @login_required
 def cart():
-    ip = request.remote_addr
-    cart_list_unfiltered_id = db.session.query(Cart.product_id)
-    cart_list_id = cart_list_unfiltered_id.filter_by(user_id=current_user.id)
-    user_cart_list_id = ([x[0] for x in cart_list_id])
+    current_cart_unfiltered_id = db.session.query(Cart.product_id)
+    current_cart_id = current_cart_unfiltered_id.filter_by(user_id=current_user.id)
+    user_cart_list_id = ([x[0] for x in current_cart_id])
     user_cart_list = []
-    user_cart_list_name = []
     for product_id in user_cart_list_id:
         product = Product.query.filter_by(id=product_id).first()
         user_cart_list.append(product)
-        user_cart_list_name.append(product.name)
     if request.method == "POST":
-        product_name = request.form['product']
-        if product_name in user_cart_list_name:
-            flash(f'{product_name} already is in your shopping cart', 'info')
-            return redirect(url_for("shop.cart"))
+        product_id = request.form['product_id']
+        if int(product_id) in user_cart_list_id:
+            flash(f'This product is already in your shopping cart', 'info')
+            return render_template("product.html", product=product)
         else:
-            product = Product.query.filter_by(name=product_name).first()
+            product = Product.query.filter_by(id=product_id).first()
             product_id = product.id
             user_id = current_user.id
             new_product = Cart(user_id=user_id, product_id=product_id, quantity=1)
@@ -532,8 +553,7 @@ def cart():
             db.session.commit()
             return redirect(url_for("shop.cart"))
     else:
-        return render_template("cart.html", ip=ip, user_cart_list=user_cart_list,
-                               user_cart_list_name=user_cart_list_name)
+        return render_template("cart.html", user_cart_list=user_cart_list)
 
 
 @shop.route('/clear_cart', methods=["POST"])
