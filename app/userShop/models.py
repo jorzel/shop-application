@@ -13,6 +13,8 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(128), unique=False, nullable=False)
     email = db.Column(db.String(128), unique=True, nullable=False)
     role = db.relationship('Role', secondary='user_roles', backref=db.backref('user', lazy='dynamic'))
+    picture = db.Column(db.String(200))
+    type = db.Column(db.String(10))
 
     @property
     def password(self):
@@ -45,4 +47,5 @@ class UserRoles(db.Model):
 
 @login.user_loader
 def load_user(user_id):
+
     return User.query.get(int(user_id))

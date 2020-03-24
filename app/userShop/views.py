@@ -4,10 +4,21 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app.userShop.forms import LoginForm, RegisterForm, ChangePasswordForm
 from .models import User, Role, UserRoles
 from ..postShop.models import Posts
+from flask_dance.contrib.google import make_google_blueprint, google
 import logging
+import json
 
 
 userShop = Blueprint('userShop', __name__, template_folder='templates')
+with open('google_client.json') as f:
+    data = json.load(f)
+    client_id = (data[0]['client_id'])
+    client_secret = (data[1]['client_secret'])
+    google_oauth = make_google_blueprint(client_id=client_id,
+                                         client_secret=client_secret,
+                                         offline=True,
+                                         scope=["profile", "email"],
+                                         redirect_to='userShop.google_login')
 
 
 def role_req(role_name):
@@ -29,7 +40,8 @@ def register():
                     username=form.username.data,
                     email=form.email.data,
                     password=form.password.data,
-                    role=[Role.query.filter_by(name='guest').first()])
+                    role=[Role.query.filter_by(name='guest').first()],
+                    )
 
         if len(form.password.data) < 6:
             flash('Password is too short', 'error')
@@ -52,6 +64,7 @@ def login():
         if user is None or not user.check_password(form.password.data):
             flash('Invalid login or password', 'error')
             return redirect(url_for('userShop.login'))
+        print("USER", )
         login_user(user)
         flash('You are logged in as %s' % (db.session.query(User.username).first()), 'success')
         return redirect(url_for('shop.home'))
@@ -63,6 +76,43 @@ def logout():
     logout_user()
     flash('You are logged out', 'info')
     return redirect(url_for('shop.home'))
+
+
+@userShop.route('/login/google', methods=['GET', 'POST'])
+def google_login():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+    else:
+        resp = google.get('/oauth2/v2/userinfo')
+        assert resp.ok, resp.text
+        user_data = resp.json()
+        email = user_data['email']
+        emails = db.session.query(User.email).all()
+        emails = ([x[0] for x in emails])
+        if email in emails:
+            user = User.query.filter_by(email=email).first()
+        else:
+            username = user_data['given_name']
+            username_in_db = db.session.query(User.username).all()
+            username_in_db = ([x[0] for x in username_in_db])
+            if username in username_in_db:
+                username += '_google'
+            else:
+                pass
+            user = User(username=username,
+                        password=user_data['email'],
+                        email=user_data['email'],
+                        first_name=user_data['given_name'],
+                        last_name=user_data['family_name'],
+                        picture=user_data['picture'],
+                        role=[Role.query.filter_by(name='google').first()],
+                        type='google'
+                        )
+            db.session.add(user)
+            db.session.commit()
+        login_user(user)
+        flash('You are logged in as %s' % (db.session.query(User.username).first()), 'success')
+        return redirect(url_for('shop.home'))
 
 
 @userShop.route('/users', methods=['GET', 'POST'])
@@ -101,7 +151,7 @@ def role(username):
 @userShop.route('/profile/<username>', methods=['GET', 'POST'])
 @login_required
 def profile(username):
-    user = User.query.filter_by(username=current_user.username).first_or_404()
+    user = User.query.filter_by(username=current_user.username).first()
     check_user = db.session.query(Posts.user).all()
     check_user = ([x[0] for x in check_user])
     if current_user.username in check_user:

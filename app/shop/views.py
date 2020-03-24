@@ -1,6 +1,6 @@
 from .. import db
-from flask import render_template, request, url_for, redirect, flash, Blueprint
-from flask_login import login_required, current_user
+from flask import render_template, request, url_for, redirect, flash, Blueprint, session
+from flask_login import login_required, current_user, login_user
 from .models import Product, Cart
 from ..userShop.views import current_role, role_req
 import sqlalchemy.exc
@@ -318,7 +318,7 @@ def clear_cart():
 def buy():
     buying_quantity = 1
     cart_products = Cart.query.filter_by(user_id=current_user.id)
-    flash('Products:\n', 'success')
+    flash('You bought:', 'success')
     for products in cart_products:
         product = Product.query.filter_by(id=products.product_id).first()
         update_quantity = product.quantity - buying_quantity
@@ -326,5 +326,4 @@ def buy():
         cart_products.delete()
         db.session.commit()
         flash(f'{product.name}', 'success')
-    flash('\nhave been bought', 'success')
     return redirect(url_for("shop.cart"))
