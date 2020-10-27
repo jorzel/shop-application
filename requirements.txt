@@ -7,7 +7,7 @@ blueprint==3.4.2
 cffi==1.12.3
 Click==7.0
 colorama==0.4.1
-cryptography==2.7
+cryptography==3.2
 Flask==1.0.3
 Flask-Login==0.4.1
 Flask-Mail==0.9.1
